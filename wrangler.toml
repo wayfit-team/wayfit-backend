@@ -1,0 +1,12 @@
+name = "wayfit-backend"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-10-29"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"
+
+[[d1_databases]]
+binding = "wayfit_db"
+database_name = "wayfit-db"
+database_id = "4b314bd5-d613-4acd-bef4-b0b597bfdcf2"
+migrations_dir = "migrations"
