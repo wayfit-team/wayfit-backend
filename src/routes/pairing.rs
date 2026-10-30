@@ -17,7 +17,7 @@ use crate::schemas::pairing::{
 use crate::state::AppState;
 use crate::time::{format_rfc3339, now_utc, parse_rfc3339};
 
-/// 차량 앱용 8자리 QR 페어링 코드 발급 (10분 유효, REQ-B15)
+/// 차량 앱용 8자리 숫자 QR 페어링 코드 발급 (10분 유효, REQ-B15)
 #[utoipa::path(
     post,
     path = "/v1/pairing-codes",
@@ -36,19 +36,29 @@ pub async fn create_pairing_code(
     let db = state.db()?;
     let now = now_utc();
     let expires_at = format_rfc3339(now + Duration::minutes(10));
-    let code = generate_pairing_code8();
 
-    db.prepare(
-        "INSERT INTO pairing_codes (code, device_id, expires_at)
-         VALUES (?1, ?2, ?3)",
-    )
-    .bind(&[
-        JsValue::from_str(&code),
-        JsValue::from_str(&device_id),
-        JsValue::from_str(&expires_at),
-    ])?
-    .run()
-    .await?;
+    // 숫자 8자리라 이전 코드와 겹칠 수 있다. 겹치면 새로 뽑는다.
+    let mut issued = None;
+    for _ in 0..5 {
+        let candidate = generate_pairing_code8();
+        let res = db
+            .prepare(
+                "INSERT OR IGNORE INTO pairing_codes (code, device_id, expires_at)
+                 VALUES (?1, ?2, ?3)",
+            )
+            .bind(&[
+                JsValue::from_str(&candidate),
+                JsValue::from_str(&device_id),
+                JsValue::from_str(&expires_at),
+            ])?
+            .run()
+            .await?;
+        if res.meta()?.and_then(|m| m.changes).unwrap_or(0) > 0 {
+            issued = Some(candidate);
+            break;
+        }
+    }
+    let code = issued.ok_or_else(|| AppError::internal("페어링 코드 발급에 실패했습니다"))?;
 
     let base_url = state.pwa_base_url();
     let pairing_url = format!("{}/pair?code={}", base_url.trim_end_matches('/'), code);
@@ -92,7 +102,7 @@ pub async fn get_device_pairing_status(
     }))
 }
 
-/// PWA에서 8자리 페어링 코드 제출 → 카카오 계정에 차량 기기 연결 (REQ-B16, EDGE-B5)
+/// PWA에서 8자리 숫자 페어링 코드 제출 → 카카오 계정에 차량 기기 연결 (REQ-B16, EDGE-B5)
 #[utoipa::path(
     post,
     path = "/v1/pairing/claim",
@@ -101,6 +111,7 @@ pub async fn get_device_pairing_status(
     security(("kakao_user_id" = [])),
     responses(
         (status = 200, description = "차량 기기 연결 완료 (멱등)", body = ClaimPairingResponse),
+        (status = 400, description = "숫자 8자리가 아닌 코드 (VALIDATION_FAILED)", body = crate::error::ErrorResponse),
         (status = 404, description = "존재하지 않는 페어링 코드", body = crate::error::ErrorResponse),
         (status = 409, description = "이미 다른 사용자가 사용한 코드 (PAIRING_CODE_USED)", body = crate::error::ErrorResponse),
         (status = 410, description = "유효기간(10분)이 만료된 코드 (PAIRING_CODE_EXPIRED)", body = crate::error::ErrorResponse)
@@ -112,9 +123,10 @@ pub async fn claim_pairing_code(
     KakaoUserId(kakao_user_id): KakaoUserId,
     Json(req): Json<ClaimPairingRequest>,
 ) -> Result<Json<ClaimPairingResponse>, AppError> {
-    let code = req.code.trim().to_uppercase();
-    if code.is_empty() {
-        return Err(AppError::validation("페어링 코드(code)를 입력해 주세요"));
+    // QR URL 또는 직접 입력 모두 허용: 공백·하이픈 등 숫자 외 문자는 무시한다
+    let code: String = req.code.chars().filter(|c| c.is_ascii_digit()).collect();
+    if code.len() != 8 {
+        return Err(AppError::validation("페어링 코드는 숫자 8자리입니다"));
     }
 
     let db = state.db()?;

@@ -13,14 +13,13 @@ pub fn generate_coupon_code6() -> String {
     format!("{:06}", num)
 }
 
-/// Generate an 8-character unambiguous alphanumeric pairing code (REQ-B15)
+/// Generate an 8-digit numeric pairing code (REQ-B15).
+/// 차 화면의 코드를 폰 숫자 키패드로 옮겨 입력하기 쉽도록 숫자만 쓴다.
 pub fn generate_pairing_code8() -> String {
-    const CHARSET: &[u8] = b"23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
     let mut buf = [0u8; 8];
     let _ = getrandom::getrandom(&mut buf);
-    buf.iter()
-        .map(|b| CHARSET[(*b as usize) % CHARSET.len()] as char)
-        .collect()
+    let num = u64::from_le_bytes(buf) % 100_000_000;
+    format!("{:08}", num)
 }
 
 #[cfg(test)]
@@ -36,5 +35,6 @@ mod tests {
         assert!(code6.chars().all(|c| c.is_ascii_digit()));
         let code8 = generate_pairing_code8();
         assert_eq!(code8.len(), 8);
+        assert!(code8.chars().all(|c| c.is_ascii_digit()));
     }
 }
