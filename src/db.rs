@@ -158,6 +158,11 @@ pub struct UserDeviceRow {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdRow {
+    pub id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StoreIdRow {
     pub store_id: String,
 }
