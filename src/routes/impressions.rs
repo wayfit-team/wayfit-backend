@@ -3,7 +3,7 @@ use worker::wasm_bindgen::JsValue;
 
 use crate::db::{IdRow, StoreRow};
 use crate::error::{AppError, ErrorCode};
-use crate::extractors::DeviceId;
+use crate::extractors::{AppJson, DeviceId};
 use crate::ids::new_id;
 use crate::schemas::stores::{CreateImpressionRequest, CreateImpressionResponse};
 use crate::state::AppState;
@@ -28,7 +28,7 @@ use crate::time::{format_rfc3339, now_utc, to_kst_date_str};
 pub async fn create_impression(
     State(state): State<AppState>,
     DeviceId(device_id): DeviceId,
-    Json(req): Json<CreateImpressionRequest>,
+    AppJson(req): AppJson<CreateImpressionRequest>,
 ) -> Result<Json<CreateImpressionResponse>, AppError> {
     if req.store_id.trim().is_empty() || req.trip_id.trim().is_empty() {
         return Err(AppError::validation("storeId와 tripId는 필수입니다"));

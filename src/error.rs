@@ -120,11 +120,21 @@ impl From<worker::Error> for AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = self.code.status_code();
+        // 내부 오류 원문(D1 에러, 스택 등)은 로그로만 남기고 응답에는 일반 문구만 보낸다
+        let (message, details) = if self.code == ErrorCode::InternalError {
+            worker::console_error!("[INTERNAL_ERROR] {} {}", self.message, self.details);
+            (
+                "일시적인 서버 오류입니다. 잠시 후 다시 시도해 주세요".to_string(),
+                json!({}),
+            )
+        } else {
+            (self.message, self.details)
+        };
         let body = ErrorResponse {
             error: ErrorDetail {
                 code: self.code,
-                message: self.message,
-                details: self.details,
+                message,
+                details,
             },
         };
         (status, Json(body)).into_response()

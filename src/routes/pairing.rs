@@ -8,7 +8,7 @@ use worker::wasm_bindgen::JsValue;
 
 use crate::db::{CountRow, PairingCodeRow, UserDeviceRow};
 use crate::error::{AppError, ErrorCode};
-use crate::extractors::{DeviceId, KakaoUserId};
+use crate::extractors::{AppJson, DeviceId, KakaoUserId};
 use crate::ids::generate_pairing_code8;
 use crate::schemas::pairing::{
     ClaimPairingRequest, ClaimPairingResponse, CreatePairingCodeResponse,
@@ -110,7 +110,7 @@ pub async fn get_device_pairing_status(
 pub async fn claim_pairing_code(
     State(state): State<AppState>,
     KakaoUserId(kakao_user_id): KakaoUserId,
-    Json(req): Json<ClaimPairingRequest>,
+    AppJson(req): AppJson<ClaimPairingRequest>,
 ) -> Result<Json<ClaimPairingResponse>, AppError> {
     let code = req.code.trim().to_uppercase();
     if code.is_empty() {

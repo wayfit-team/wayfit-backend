@@ -8,7 +8,7 @@ use worker::wasm_bindgen::JsValue;
 
 use crate::db::{CountRow, CouponRow, StoreRow};
 use crate::error::{AppError, ErrorCode};
-use crate::extractors::{DeviceId, KakaoUserId};
+use crate::extractors::{AppJson, DeviceId, KakaoUserId};
 use crate::schemas::coupons::{
     CouponListResponse, CouponStatus, RedeemCouponRequest, RedeemCouponResponse,
 };
@@ -68,7 +68,7 @@ pub async fn redeem_coupon(
     State(state): State<AppState>,
     KakaoUserId(kakao_user_id): KakaoUserId,
     Path(coupon_id): Path<String>,
-    Json(req): Json<RedeemCouponRequest>,
+    AppJson(req): AppJson<RedeemCouponRequest>,
 ) -> Result<Json<RedeemCouponResponse>, AppError> {
     let db = state.db()?;
     let now = now_utc();

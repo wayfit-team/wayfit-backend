@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     Json,
 };
 use std::collections::HashMap;
@@ -7,7 +7,7 @@ use worker::wasm_bindgen::JsValue;
 
 use crate::db::{DateCountRow, StoreRow};
 use crate::error::AppError;
-use crate::extractors::KakaoUserId;
+use crate::extractors::{AppJson, AppQuery, KakaoUserId};
 use crate::schemas::owner::{
     DailyStatItem, OwnerStoreResponse, OwnerStoresResponse, StoreStatsQuery, StoreStatsResponse,
     StoreStatsTotals, UpdateOwnerStoreRequest,
@@ -63,7 +63,7 @@ pub async fn update_owner_store(
     State(state): State<AppState>,
     KakaoUserId(kakao_user_id): KakaoUserId,
     Path(store_id): Path<String>,
-    Json(req): Json<UpdateOwnerStoreRequest>,
+    AppJson(req): AppJson<UpdateOwnerStoreRequest>,
 ) -> Result<Json<OwnerStoreResponse>, AppError> {
     let db = state.db()?;
     let store: Option<StoreRow> = db
@@ -207,7 +207,7 @@ pub async fn get_owner_store_stats(
     State(state): State<AppState>,
     KakaoUserId(kakao_user_id): KakaoUserId,
     Path(store_id): Path<String>,
-    Query(query): Query<StoreStatsQuery>,
+    AppQuery(query): AppQuery<StoreStatsQuery>,
 ) -> Result<Json<StoreStatsResponse>, AppError> {
     let days = query.days.unwrap_or(7);
     if !matches!(days, 7 | 30) {
