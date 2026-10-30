@@ -11,9 +11,25 @@ database_name = "wayfit-db"
 database_id = "4b314bd5-d613-4acd-bef4-b0b597bfdcf2"
 migrations_dir = "migrations"
 
+[observability]
+enabled = false
+head_sampling_rate = 1
+redact_query_string = false
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 1
+persist = true
+
+[observability.issues]
+enabled = true
+
 [vars]
-# 카카오 개발자 콘솔 > 앱 > 앱 키 > REST API 키 (인가 요청 client_id, 공개값)
-KAKAO_REST_API_KEY = ""
-# 카카오 콘솔 > 카카오 로그인 > Redirect URI 에 등록한 값과 정확히 같아야 한다 (쉼표 구분)
+KAKAO_REST_API_KEY = "9ab09a604f5cd454900647e5921b830f"
 KAKAO_REDIRECT_URIS = "https://wayfit.pages.dev/auth/kakao/callback"
-# Client Secret 은 vars 가 아니라 시크릿으로: npx wrangler secret put KAKAO_CLIENT_SECRET
