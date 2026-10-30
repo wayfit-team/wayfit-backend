@@ -1,0 +1,73 @@
+name: Claude 코드 리뷰
+
+# PR을 열거나 커밋을 푸시하면 Claude Code가 변경분을 리뷰한다.
+# 필요한 것: Claude GitHub App 설치 + 저장소 Secret CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`으로 발급)
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Claude 리뷰
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            이 PR의 변경분을 리뷰한다. 웨이핏(WayFit)은 경로 위 제휴 매장을 추천하고,
+            차량 데이터(반경 진입 + 기어 P단)로 방문을 인증해 쿠폰을 주는 서비스다.
+            구성: Pleos 차량 앱(Kotlin) · 백엔드(Rust, Cloudflare Workers + D1) · PWA(React).
+
+            ## 이 저장소에서 특히 볼 것
+            - Rust + axum on Cloudflare Workers(wasm32): 스레드·블로킹 I/O·`std::time::SystemTime` 등 wasm에서 안 되는 API 사용.
+            - D1(SQLite) 쿼리: 값은 반드시 bind로 넘기는지, 인덱스·외래키·CHECK 제약과 맞는지.
+            - `migrations/`: 이미 배포된 마이그레이션 파일을 고치지 않는지, 기존 데이터를 옮기는지, `scripts/seed.sql`과 맞는지.
+            - 에러는 `AppError` → `{error:{code,message,details}}` 형식으로 나가는지, 내부 에러 원문이 응답에 새지 않는지.
+            - 잘못된 요청도 axum 기본 응답(텍스트·422·415)이 아니라 400 공통 형식으로 나가는지, utoipa OpenAPI 문서(경로·파라미터 위치·응답 코드)가 실제 동작과 맞는지.
+            - 식별 헤더(`X-Device-Id`, `X-Kakao-User-Id`)로 남의 데이터(쿠폰·매장·방문)에 접근할 수 없는지.
+            - 방문 인증 판정(반경 + 기어 P단 + 시간 제한)과 쿠폰 발급·사용이 중복·경쟁 상황에서도 한 번만 일어나는지.
+
+            ## 공통
+            - 실제로 동작이 틀리거나 깨지는 문제를 우선한다: 로직 버그, 엣지 케이스, 에러 처리 누락,
+              다른 저장소와의 API 계약(필드 이름·타입·에러 코드) 불일치.
+            - 키·토큰·비밀번호가 코드나 설정 파일에 들어가면 반드시 지적한다.
+            - 포매터·린터가 잡을 스타일 지적, 취향 차이, 근거 없는 추측은 하지 않는다.
+            - 확실하지 않으면 단정하지 말고 질문으로 남긴다.
+
+            ## 진행 방법
+            1. `gh pr view` / `gh pr diff`로 변경 내용을 보고, 필요하면 저장소 파일을 읽어 맥락을 확인한다.
+            2. 이미 달린 리뷰 댓글은
+               `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments`
+               로 확인하고 같은 지적을 반복하지 않는다.
+            3. 구체적인 줄이 있는 문제는 `mcp__github_inline_comment__create_inline_comment`로
+               해당 줄에 인라인 댓글을 단다(최대 10개, 심각한 것부터).
+               각 댓글은 `[P0]` 깨짐·보안 / `[P1]` 버그 가능성 / `[P2]` 개선 중 하나로 시작하고,
+               문제 → 일어나는 상황 → 고치는 방법 순서로 짧게 쓴다.
+            4. 마지막에 요약 댓글 하나를
+               `gh pr comment ${{ github.event.pull_request.number }} --edit-last --create-if-none --body "..."`
+               로 남긴다(푸시할 때마다 새 댓글이 쌓이지 않도록 이전 요약을 고친다).
+               요약: 한 줄 총평, 등급별 개수, 머지 전 꼭 고칠 것. 문제가 없으면 없다고 짧게 쓴다.
+
+            모든 댓글은 한국어로 쓴다.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments:*)"
