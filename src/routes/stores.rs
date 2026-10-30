@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Query, State},
+    extract::State,
     Json,
 };
 use std::collections::HashSet;
@@ -9,7 +9,7 @@ use crate::db::{StoreIdRow, StoreRow};
 use crate::domain::corridor::{compute_bbox, evaluate_store_corridor, CorridorQuery};
 use crate::domain::hours::is_store_open;
 use crate::error::AppError;
-use crate::extractors::DeviceId;
+use crate::extractors::{AppQuery, DeviceId};
 use crate::schemas::stores::{
     NearbyStoreItem, NearbyStoresQuery, NearbyStoresResponse, StoreCategory,
 };
@@ -33,7 +33,7 @@ use crate::time::{now_utc, to_kst_date_str};
 pub async fn get_nearby_stores(
     State(state): State<AppState>,
     DeviceId(device_id): DeviceId,
-    Query(query): Query<NearbyStoresQuery>,
+    AppQuery(query): AppQuery<NearbyStoresQuery>,
 ) -> Result<Json<NearbyStoresResponse>, AppError> {
     if !(-90.0..=90.0).contains(&query.lat) || !(-180.0..=180.0).contains(&query.lng) {
         return Err(AppError::validation("유효하지 않은 위경도 좌표입니다"));

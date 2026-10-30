@@ -9,7 +9,7 @@ use worker::wasm_bindgen::JsValue;
 use crate::db::{CountRow, CouponRow, StoreRow, VisitRow};
 use crate::domain::verify::{evaluate_visit_verification, EvidenceItem, VerifyContext, VerifyOutcome};
 use crate::error::{AppError, ErrorCode};
-use crate::extractors::DeviceId;
+use crate::extractors::{AppJson, DeviceId};
 use crate::ids::{generate_coupon_code6, new_id};
 use crate::schemas::visits::{
     CreateVisitRequest, CreateVisitResponse, VerifyVisitRequest, VerifyVisitResponse, VisitStatus,
@@ -34,7 +34,7 @@ use crate::time::{format_rfc3339, now_utc, parse_rfc3339, to_kst_date_str};
 pub async fn create_visit(
     State(state): State<AppState>,
     DeviceId(device_id): DeviceId,
-    Json(req): Json<CreateVisitRequest>,
+    AppJson(req): AppJson<CreateVisitRequest>,
 ) -> Result<(StatusCode, Json<CreateVisitResponse>), AppError> {
     if req.store_id.trim().is_empty() || req.trip_id.trim().is_empty() {
         return Err(AppError::validation("storeId와 tripId는 필수입니다"));
@@ -179,7 +179,7 @@ pub async fn verify_visit(
     State(state): State<AppState>,
     DeviceId(device_id): DeviceId,
     Path(visit_id): Path<String>,
-    Json(req): Json<VerifyVisitRequest>,
+    AppJson(req): AppJson<VerifyVisitRequest>,
 ) -> Result<Json<VerifyVisitResponse>, AppError> {
     let db = state.db()?;
     let now = now_utc();
