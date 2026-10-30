@@ -2,3 +2,4 @@
 KAKAO_REST_API_KEY=
 KAKAO_CLIENT_SECRET=
 KAKAO_REDIRECT_URIS=http://localhost:5173/auth/kakao/callback
+PWA_BASE_URL=http://localhost:5173

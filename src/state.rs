@@ -65,10 +65,9 @@ impl AppState {
             .filter(|v| !v.trim().is_empty())
     }
 
-    pub fn pwa_base_url(&self) -> String {
-        self.env
-            .var("PWA_BASE_URL")
-            .map(|v| v.to_string())
-            .unwrap_or_else(|_| "https://wayfit.pages.dev".to_string())
+    /// 운영 PWA 주소 (차량 QR 의 pairingUrl). 기본값을 두지 않는다 — 남의 도메인으로 QR 이 나가지 않도록
+    pub fn pwa_base_url(&self) -> Result<String, AppError> {
+        self.non_empty_var("PWA_BASE_URL")
+            .ok_or_else(|| AppError::internal("PWA_BASE_URL이 설정되지 않았습니다"))
     }
 }

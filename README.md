@@ -28,10 +28,13 @@
 | 항목 | 위치 |
 |---|---|
 | `KAKAO_REST_API_KEY` | `wrangler.toml` `[vars]` — 카카오 콘솔 앱 키의 REST API 키 |
-| `KAKAO_REDIRECT_URIS` | `wrangler.toml` `[vars]` — 카카오 콘솔에 등록한 Redirect URI와 동일하게 (쉼표 구분) |
+| `KAKAO_REDIRECT_URIS` | `wrangler.toml` `[vars]` — 카카오 콘솔에 등록한 Redirect URI와 동일하게 (쉼표 구분). 비어 있으면 모든 카카오 로그인 거절 |
+| `PWA_BASE_URL` | `wrangler.toml` `[vars]` — 운영 PWA 주소. 차량 QR의 `pairingUrl`에 쓰임. 기본값 없음, 비어 있으면 연결 코드 발급 실패 |
 | `KAKAO_CLIENT_SECRET` | `npx wrangler secret put KAKAO_CLIENT_SECRET` — 카카오 콘솔에서 Client Secret을 **사용함**으로 둘 것 |
 | 로컬 | `.dev.vars.example`을 `.dev.vars`로 복사해 채움 |
 | 사장님 매장 연결 | `stores.owner_kakao_id`를 사장님의 실제 카카오 회원번호(숫자)로 설정. 시드의 `kakao_owner_01`은 로그인으로 매칭되지 않음 |
+
+> `wayfit.pages.dev`는 우리 앱이 아니라 다른 사람이 쓰는 사이트입니다. Redirect URI·`PWA_BASE_URL`에 쓰지 마세요. 우리가 소유한 Pages 프로젝트나 도메인만 등록합니다.
 
 ---
 

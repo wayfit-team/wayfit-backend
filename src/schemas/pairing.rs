@@ -10,7 +10,7 @@ pub struct CreatePairingCodeResponse {
     #[schema(example = "2026-11-05T03:20:00Z")]
     pub expires_at: String,
     /// QR 코드로 인코딩할 PWA 연결 URL
-    #[schema(example = "https://wayfit.pages.dev/pair?code=48201937")]
+    #[schema(example = "https://pwa.example.com/pair?code=48201937")]
     pub pairing_url: String,
 }
 

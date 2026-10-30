@@ -8,7 +8,7 @@ pub struct KakaoLoginRequest {
     #[schema(example = "uOr1cZ8QmF...")]
     pub code: String,
     /// 인가 요청에 사용한 Redirect URI (서버 허용 목록과 정확히 일치해야 함)
-    #[schema(example = "https://wayfit.pages.dev/auth/kakao/callback")]
+    #[schema(example = "https://pwa.example.com/auth/kakao/callback")]
     pub redirect_uri: String,
 }
 

@@ -33,6 +33,8 @@ pub async fn create_pairing_code(
     State(state): State<AppState>,
     DeviceId(device_id): DeviceId,
 ) -> Result<(StatusCode, Json<CreatePairingCodeResponse>), AppError> {
+    // QR 이 엉뚱한 사이트로 가지 않도록, 주소가 설정되지 않았으면 코드를 만들기 전에 실패한다
+    let base_url = state.pwa_base_url()?;
     let db = state.db()?;
     let now = now_utc();
     let expires_at = format_rfc3339(now + Duration::minutes(10));
@@ -60,7 +62,6 @@ pub async fn create_pairing_code(
     }
     let code = issued.ok_or_else(|| AppError::internal("페어링 코드 발급에 실패했습니다"))?;
 
-    let base_url = state.pwa_base_url();
     let pairing_url = format!("{}/pair?code={}", base_url.trim_end_matches('/'), code);
 
     Ok((

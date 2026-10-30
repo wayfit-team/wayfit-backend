@@ -210,16 +210,16 @@ mod tests {
     #[test]
     fn test_redirect_uri_must_match_exactly() {
         let allowed = vec![
-            "https://wayfit.pages.dev/auth/kakao/callback".to_string(),
+            "https://pwa.example.com/auth/kakao/callback".to_string(),
             "http://localhost:5173/auth/kakao/callback".to_string(),
         ];
-        assert!(is_allowed_redirect_uri("https://wayfit.pages.dev/auth/kakao/callback", &allowed));
-        assert!(!is_allowed_redirect_uri("https://wayfit.pages.dev/auth/kakao/callback/", &allowed));
+        assert!(is_allowed_redirect_uri("https://pwa.example.com/auth/kakao/callback", &allowed));
+        assert!(!is_allowed_redirect_uri("https://pwa.example.com/auth/kakao/callback/", &allowed));
         assert!(!is_allowed_redirect_uri("https://evil.example/auth/kakao/callback", &allowed));
         assert!(!is_allowed_redirect_uri(
-            "https://wayfit.pages.dev.evil.example/auth/kakao/callback",
+            "https://pwa.example.com.evil.example/auth/kakao/callback",
             &allowed
         ));
-        assert!(!is_allowed_redirect_uri("https://wayfit.pages.dev/auth/kakao/callback", &[]));
+        assert!(!is_allowed_redirect_uri("https://pwa.example.com/auth/kakao/callback", &[]));
     }
 }
