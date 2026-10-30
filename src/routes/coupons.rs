@@ -20,10 +20,10 @@ use crate::time::{format_rfc3339, now_utc, parse_rfc3339, to_kst_date_str};
     get,
     path = "/v1/devices/me/coupons",
     tag = "Vehicle (Pleos App)",
-    security(("device_id" = [])),
+    security(("device_token" = [])),
     responses(
         (status = 200, description = "차량 기기에 발급된 쿠폰 목록 (최신순)", body = CouponListResponse),
-        (status = 401, description = "X-Device-Id 헤더 누락", body = crate::error::ErrorResponse)
+        (status = 401, description = "기기 토큰 누락 또는 무효 (UNAUTHORIZED)", body = crate::error::ErrorResponse)
     )
 )]
 #[worker::send]
@@ -52,7 +52,7 @@ pub async fn get_device_coupons(
     tag = "Driver Wallet (PWA)",
     params(("id" = String, Path, description = "사용 처리할 쿠폰 ID")),
     request_body = RedeemCouponRequest,
-    security(("kakao_user_id" = [])),
+    security(("session_token" = [])),
     responses(
         (status = 200, description = "쿠폰 사용 처리 완료 (REDEEMED)", body = RedeemCouponResponse),
         (status = 403, description = "본인 연결 기기의 쿠폰이 아니거나 비활성 매장 (STORE_INACTIVE)", body = crate::error::ErrorResponse),

@@ -15,11 +15,11 @@ use crate::time::{format_rfc3339, now_utc, to_kst_date_str};
     path = "/v1/impressions",
     tag = "Vehicle (Pleos App)",
     request_body = CreateImpressionRequest,
-    security(("device_id" = [])),
+    security(("device_token" = [])),
     responses(
         (status = 200, description = "노출 이벤트 기록 결과. 같은 기기·매장·트립의 중복 노출이면 recorded=false와 처음 기록된 impressionId를 준다", body = CreateImpressionResponse),
         (status = 400, description = "필수 파라미터 누락", body = crate::error::ErrorResponse),
-        (status = 401, description = "X-Device-Id 헤더 누락", body = crate::error::ErrorResponse),
+        (status = 401, description = "기기 토큰 누락 또는 무효 (UNAUTHORIZED)", body = crate::error::ErrorResponse),
         (status = 403, description = "일시중지되었거나 구독이 끝난 매장 (STORE_INACTIVE)", body = crate::error::ErrorResponse),
         (status = 404, description = "존재하지 않는 매장", body = crate::error::ErrorResponse)
     )

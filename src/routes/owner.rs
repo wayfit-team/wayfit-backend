@@ -20,10 +20,10 @@ use crate::time::{now_utc, recent_kst_dates};
     get,
     path = "/v1/owner/stores",
     tag = "Store Owner (PWA /owner)",
-    security(("kakao_user_id" = [])),
+    security(("session_token" = [])),
     responses(
         (status = 200, description = "내 카카오 계정에 등록된 매장 목록", body = OwnerStoresResponse),
-        (status = 401, description = "X-Kakao-User-Id 헤더 누락", body = crate::error::ErrorResponse)
+        (status = 401, description = "로그인 필요 또는 세션 만료 (UNAUTHORIZED)", body = crate::error::ErrorResponse)
     )
 )]
 #[worker::send]
@@ -50,7 +50,7 @@ pub async fn get_owner_stores(
     tag = "Store Owner (PWA /owner)",
     params(("id" = String, Path, description = "수정할 매장 ID")),
     request_body = UpdateOwnerStoreRequest,
-    security(("kakao_user_id" = [])),
+    security(("session_token" = [])),
     responses(
         (status = 200, description = "수정된 매장 상세 정보", body = OwnerStoreResponse),
         (status = 400, description = "혜택 40자 초과, 잘못된 반경(100/150/300 외), PIN 형식 오류", body = crate::error::ErrorResponse),
@@ -194,7 +194,7 @@ pub async fn update_owner_store(
         ("id" = String, Path, description = "통계를 조회할 매장 ID"),
         StoreStatsQuery
     ),
-    security(("kakao_user_id" = [])),
+    security(("session_token" = [])),
     responses(
         (status = 200, description = "최근 7일/30일 일자별 퍼널 통계 및 전환율", body = StoreStatsResponse),
         (status = 400, description = "days 파라미터 오류 (7 또는 30만 허용)", body = crate::error::ErrorResponse),

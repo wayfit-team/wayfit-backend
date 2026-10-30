@@ -22,10 +22,10 @@ use crate::time::{format_rfc3339, now_utc, parse_rfc3339};
     post,
     path = "/v1/pairing-codes",
     tag = "Vehicle (Pleos App)",
-    security(("device_id" = [])),
+    security(("device_token" = [])),
     responses(
         (status = 201, description = "발급된 8자리 페어링 코드 및 QR URL", body = CreatePairingCodeResponse),
-        (status = 401, description = "X-Device-Id 헤더 누락", body = crate::error::ErrorResponse)
+        (status = 401, description = "기기 토큰 누락 또는 무효 (UNAUTHORIZED)", body = crate::error::ErrorResponse)
     )
 )]
 #[worker::send]
@@ -78,10 +78,10 @@ pub async fn create_pairing_code(
     get,
     path = "/v1/devices/me/pairing",
     tag = "Vehicle (Pleos App)",
-    security(("device_id" = [])),
+    security(("device_token" = [])),
     responses(
         (status = 200, description = "연결된 사용자 계정 수", body = DevicePairingStatusResponse),
-        (status = 401, description = "X-Device-Id 헤더 누락", body = crate::error::ErrorResponse)
+        (status = 401, description = "기기 토큰 누락 또는 무효 (UNAUTHORIZED)", body = crate::error::ErrorResponse)
     )
 )]
 #[worker::send]
@@ -108,7 +108,7 @@ pub async fn get_device_pairing_status(
     path = "/v1/pairing/claim",
     tag = "Driver Wallet (PWA)",
     request_body = ClaimPairingRequest,
-    security(("kakao_user_id" = [])),
+    security(("session_token" = [])),
     responses(
         (status = 200, description = "차량 기기 연결 완료 (멱등)", body = ClaimPairingResponse),
         (status = 400, description = "숫자 8자리가 아닌 코드 (VALIDATION_FAILED)", body = crate::error::ErrorResponse),

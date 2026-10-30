@@ -9,6 +9,8 @@ DELETE FROM visits;
 DELETE FROM impressions;
 DELETE FROM user_devices;
 DELETE FROM pairing_codes;
+DELETE FROM sessions;
+DELETE FROM devices;
 DELETE FROM stores;
 
 INSERT INTO stores (
