@@ -257,13 +257,18 @@ pub async fn verify_visit(
 
         let lat_js = dto.lat.map(JsValue::from_f64).unwrap_or(JsValue::NULL);
         let lng_js = dto.lng.map(JsValue::from_f64).unwrap_or(JsValue::NULL);
+        let source_js = dto
+            .source
+            .map(|s| JsValue::from_str(s.as_str()))
+            .unwrap_or(JsValue::NULL);
         db.prepare(
-            "INSERT INTO visit_evidences (visit_id, type, occurred_at, lat, lng)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO visit_evidences (visit_id, type, source, occurred_at, lat, lng)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         )
         .bind(&[
             JsValue::from_str(&visit.id),
             JsValue::from_str(dto.evidence_type.as_str()),
+            source_js,
             JsValue::from_str(&dto.occurred_at),
             lat_js,
             lng_js,

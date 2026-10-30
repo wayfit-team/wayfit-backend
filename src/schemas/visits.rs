@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::domain::verify::EvidenceType;
+use crate::domain::verify::{EvidenceSource, EvidenceType};
 use crate::schemas::coupons::CouponDto;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
@@ -77,6 +77,9 @@ pub struct CreateVisitResponse {
 pub struct EvidenceDto {
     #[serde(rename = "type")]
     pub evidence_type: EvidenceType,
+    /// 위치 출처 (선택, LOCATION·GEOFENCE_ENTER에 사용)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<EvidenceSource>,
     #[schema(example = "2026-11-05T03:12:40Z")]
     pub occurred_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -37,7 +37,8 @@ wayfit-backend/
 ├── Cargo.toml                  # Rust 의존성 (worker, axum, utoipa, serde, chrono, uuid)
 ├── wrangler.toml               # Cloudflare Workers 및 D1 (wayfit-db) 바인딩 설정
 ├── migrations/
-│   └── 0001_init.sql           # D1 스키마 버전 관리 (7개 핵심 도메인 테이블 & 인덱스)
+│   ├── 0001_init.sql           # D1 스키마 버전 관리 (7개 핵심 도메인 테이블 & 인덱스)
+│   └── 0002_evidence_gear_park.sql # 방문 증거: 기어 P단·지오펜스 진입 추가 (PARKING_BRAKE_ON → GEAR_PARK)
 ├── scripts/
 │   └── seed.sql                # 아주대 정문 → 광교호수공원 데모 매장 10곳 시드 데이터
 └── src/
