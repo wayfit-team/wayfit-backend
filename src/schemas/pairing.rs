@@ -4,13 +4,13 @@ use utoipa::ToSchema;
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePairingCodeResponse {
-    /// 8자리 페어링 코드 (10분 유효, 1회용)
-    #[schema(example = "WF8K92M4")]
+    /// 8자리 숫자 페어링 코드 (10분 유효, 1회용)
+    #[schema(example = "48201937")]
     pub code: String,
     #[schema(example = "2026-11-05T03:20:00Z")]
     pub expires_at: String,
     /// QR 코드로 인코딩할 PWA 연결 URL
-    #[schema(example = "https://wayfit.pages.dev/pair?code=WF8K92M4")]
+    #[schema(example = "https://wayfit.pages.dev/pair?code=48201937")]
     pub pairing_url: String,
 }
 
@@ -27,7 +27,7 @@ pub struct DevicePairingStatusResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ClaimPairingRequest {
-    #[schema(example = "WF8K92M4")]
+    #[schema(example = "48201937")]
     pub code: String,
 }
 

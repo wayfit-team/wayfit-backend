@@ -48,7 +48,7 @@ wayfit-backend/
     ├── error.rs                # AppError & 통일 JSON 에러 응답 ({ error: { code, message, details } })
     ├── extractors.rs           # DeviceId (X-Device-Id), KakaoUserId (X-Kakao-User-Id) 추출기
     ├── time.rs                 # UTC 타임스탬프 및 KST (UTC+9) 날짜 경계 계산 (NFR-B6)
-    ├── ids.rs                  # UUID, 6자리 쿠폰 코드(code6), 8자리 페어링 코드 생성기
+    ├── ids.rs                  # UUID, 6자리 쿠폰 코드(code6), 8자리 숫자 페어링 코드 생성기
     ├── domain/                 # 순수 도메인 로직 (cargo test 단위 테스트 대상)
     │   ├── corridor.rs         # 직선 경로 코리도(1km), 진행률(0~1), 우회 거리, 방향(±60°) 계산
     │   ├── verify.rs           # 방문 증거 판정 상태 머신, 신뢰도 점수(60~100), 시계 오차 보정
@@ -84,9 +84,9 @@ wayfit-backend/
 | **차량 앱** | `DELETE /v1/visits/{id}` | `X-Device-Id` | 진행 중 방문 취소 (`REQ-B6`) |
 | **차량 앱** | `POST /v1/visits/{id}/verify` | `X-Device-Id` | 차량 센서 증거 제출·판정·쿠폰 즉시 발급 (멱등, `REQ-B8~B11`) |
 | **차량 앱** | `GET /v1/devices/me/coupons` | `X-Device-Id` | 차량 기기에 귀속된 쿠폰 목록 조회 (`REQ-B12`) |
-| **차량 앱** | `POST /v1/pairing-codes` | `X-Device-Id` | 8자리 QR 페어링 코드 발급 (10분 유효, `REQ-B15`) |
+| **차량 앱** | `POST /v1/pairing-codes` | `X-Device-Id` | 8자리 숫자 QR 페어링 코드 발급 (10분 유효, `REQ-B15`) |
 | **차량 앱** | `GET /v1/devices/me/pairing` | `X-Device-Id` | 현재 차량에 연결된 카카오 계정(폰) 수 조회 (`REQ-B17`) |
-| **운전자 PWA** | `POST /v1/pairing/claim` | `X-Kakao-User-Id` | 8자리 코드 제출 → 내 카카오 계정에 차량 기기 연결 (`REQ-B16`) |
+| **운전자 PWA** | `POST /v1/pairing/claim` | `X-Kakao-User-Id` | 8자리 숫자 코드 제출 → 내 카카오 계정에 차량 기기 연결 (`REQ-B16`) |
 | **운전자 PWA** | `GET /v1/me/devices` | `X-Kakao-User-Id` | 내 계정에 연결된 차량 기기 목록 조회 (`REQ-B18`) |
 | **운전자 PWA** | `DELETE /v1/me/devices/{id}` | `X-Kakao-User-Id` | 특정 차량 기기 연결 해제 (`REQ-B18`) |
 | **운전자 PWA** | `GET /v1/me/coupons` | `X-Kakao-User-Id` | 연결된 모든 차량의 쿠폰 통합 조회 (`REQ-B12, B14`) |
