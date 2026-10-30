@@ -112,6 +112,7 @@ impl Modify for SecurityAddon {
             crate::error::ErrorResponse,
             crate::domain::hours::DayHours,
             crate::domain::verify::EvidenceType,
+            crate::domain::verify::EvidenceSource,
             crate::schemas::stores::StoreCategory,
             crate::schemas::stores::NearbyStoresQuery,
             crate::schemas::stores::NearbyStoreItem,

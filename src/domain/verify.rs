@@ -9,8 +9,12 @@ use crate::error::ErrorCode;
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum EvidenceType {
     Location,
+    /// Pleos FusedLocation 근접 알림(지오펜스) 진입. 좌표가 있으면 LOCATION과 똑같이 반경 판정에 쓴다.
+    GeofenceEnter,
     WaypointArrived,
-    ParkingBrakeOn,
+    /// 기어 P단 (Pleos Vehicle `VehicleGear.GEAR_PARK`). 구 클라이언트 호환을 위해 `PARKING_BRAKE_ON`도 받는다.
+    #[serde(alias = "PARKING_BRAKE_ON")]
+    GearPark,
     DoorOpen,
 }
 
@@ -18,9 +22,29 @@ impl EvidenceType {
     pub fn as_str(&self) -> &'static str {
         match self {
             EvidenceType::Location => "LOCATION",
+            EvidenceType::GeofenceEnter => "GEOFENCE_ENTER",
             EvidenceType::WaypointArrived => "WAYPOINT_ARRIVED",
-            EvidenceType::ParkingBrakeOn => "PARKING_BRAKE_ON",
+            EvidenceType::GearPark => "GEAR_PARK",
             EvidenceType::DoorOpen => "DOOR_OPEN",
+        }
+    }
+}
+
+/// 위치 증거의 출처 (선택). 판정에는 쓰지 않고 분석용으로 저장한다.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum EvidenceSource {
+    /// Pleos FusedLocation
+    Fused,
+    /// Pleos NaviHelper 현재 위치
+    Navi,
+}
+
+impl EvidenceSource {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            EvidenceSource::Fused => "FUSED",
+            EvidenceSource::Navi => "NAVI",
         }
     }
 }
@@ -122,24 +146,24 @@ pub fn evaluate_visit_verification(
         };
     }
 
-    // REQ-B8(b): 매장 근처에서 주차 브레이크 체결 기록 확인
-    let has_parking_brake = evidences.iter().any(|e| {
-        if e.evidence_type != EvidenceType::ParkingBrakeOn {
+    // REQ-B8(b): 매장 근처에서 기어 P단(주차) 기록 확인
+    let has_gear_park = evidences.iter().any(|e| {
+        if e.evidence_type != EvidenceType::GearPark {
             return false;
         }
         match (e.lat, e.lng) {
             (Some(lat), Some(lng)) => {
                 haversine_m(ctx.store_lat, ctx.store_lng, lat, lng) <= ctx.store_radius_m
             }
-            // 주차 브레이크 이벤트 자체에 좌표가 생략된 경우, 앞서 반경 내 LOCATION이 확인되었으므로 인정
+            // P단 이벤트 자체에 좌표가 생략된 경우, 앞서 반경 내 위치 증거가 확인되었으므로 인정
             _ => true,
         }
     });
 
-    if !has_parking_brake {
+    if !has_gear_park {
         return VerifyOutcome::Rejected {
             reason: ErrorCode::VisitNoParking,
-            message: "매장 반경 내 주차 브레이크 체결이 확인되지 않았습니다",
+            message: "매장 반경 내에서 기어 P단(주차)이 확인되지 않았습니다",
         };
     }
 
@@ -194,7 +218,7 @@ mod tests {
                 lng: None,
             },
             EvidenceItem {
-                evidence_type: EvidenceType::ParkingBrakeOn,
+                evidence_type: EvidenceType::GearPark,
                 occurred_at: parse_rfc3339("2026-11-05T03:12:40Z").unwrap(),
                 lat: Some(37.2801),
                 lng: Some(127.0441),
@@ -232,7 +256,7 @@ mod tests {
                 lng: Some(127.0440),
             },
             EvidenceItem {
-                evidence_type: EvidenceType::ParkingBrakeOn,
+                evidence_type: EvidenceType::GearPark,
                 occurred_at: parse_rfc3339("2026-11-05T03:12:40Z").unwrap(),
                 lat: None,
                 lng: None,
@@ -251,7 +275,7 @@ mod tests {
         ctx.server_now = parse_rfc3339("2026-11-05T03:20:00Z").unwrap();
         // Vehicle clock is 2 hours ahead of server (> 10m skew), but server_now is 20m after visit_created_at
         let ev = vec![EvidenceItem {
-            evidence_type: EvidenceType::ParkingBrakeOn,
+            evidence_type: EvidenceType::GearPark,
             occurred_at: parse_rfc3339("2026-11-05T05:20:00Z").unwrap(),
             lat: Some(37.2801),
             lng: Some(127.0441),
@@ -269,7 +293,7 @@ mod tests {
 
         // Out of radius
         let out_ev = vec![EvidenceItem {
-            evidence_type: EvidenceType::ParkingBrakeOn,
+            evidence_type: EvidenceType::GearPark,
             occurred_at: parse_rfc3339("2026-11-05T03:12:00Z").unwrap(),
             lat: Some(37.2900),
             lng: Some(127.0500),
@@ -307,5 +331,51 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn test_verify_geofence_enter_counts_as_location() {
+        let ctx = base_ctx();
+        let ev = vec![
+            EvidenceItem {
+                evidence_type: EvidenceType::GeofenceEnter,
+                occurred_at: parse_rfc3339("2026-11-05T03:12:00Z").unwrap(),
+                lat: Some(37.2801),
+                lng: Some(127.0441),
+            },
+            EvidenceItem {
+                evidence_type: EvidenceType::GearPark,
+                occurred_at: parse_rfc3339("2026-11-05T03:12:40Z").unwrap(),
+                lat: None,
+                lng: None,
+            },
+        ];
+
+        assert_eq!(
+            evaluate_visit_verification(&ctx, &ev),
+            VerifyOutcome::Verified { confidence: 60 }
+        );
+    }
+
+    #[test]
+    fn test_evidence_type_wire_names() {
+        let parse = |s: &str| serde_json::from_str::<EvidenceType>(&format!("\"{}\"", s)).unwrap();
+        assert_eq!(parse("GEAR_PARK"), EvidenceType::GearPark);
+        assert_eq!(parse("GEOFENCE_ENTER"), EvidenceType::GeofenceEnter);
+        // 구 클라이언트 호환
+        assert_eq!(parse("PARKING_BRAKE_ON"), EvidenceType::GearPark);
+        assert_eq!(
+            serde_json::to_string(&EvidenceType::GearPark).unwrap(),
+            "\"GEAR_PARK\""
+        );
+        for t in [
+            EvidenceType::Location,
+            EvidenceType::GeofenceEnter,
+            EvidenceType::WaypointArrived,
+            EvidenceType::GearPark,
+            EvidenceType::DoorOpen,
+        ] {
+            assert_eq!(serde_json::to_string(&t).unwrap(), format!("\"{}\"", t.as_str()));
+        }
     }
 }
