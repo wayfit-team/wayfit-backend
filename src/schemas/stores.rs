@@ -32,6 +32,7 @@ impl StoreCategory {
 
 #[derive(Debug, Clone, Deserialize, IntoParams, ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
 pub struct NearbyStoresQuery {
     /// 현재 차량 위도 (WGS84)
     #[param(example = 37.2792)]

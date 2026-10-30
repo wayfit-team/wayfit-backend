@@ -84,6 +84,10 @@ impl Modify for SecurityAddon {
         version = "0.1.0",
         description = "가는 길에, 웨이핏 — 경로 위 동네 가게 추천 & 차량 센서 기반 방문 인증·모바일 쿠폰 플랫폼 API (Cloudflare Workers + D1, 카카오 OAuth 단일화)"
     ),
+    servers(
+        (url = "https://wayfit-backend.dannyldj.workers.dev", description = "운영 (Cloudflare Workers)"),
+        (url = "http://localhost:8787", description = "로컬 (wrangler dev)")
+    ),
     modifiers(&SecurityAddon),
     paths(
         health_check,
@@ -276,5 +280,30 @@ mod tests {
         assert!(json_str.contains("/v1/owner/stores/{id}/stats"));
         assert!(json_str.contains("X-Device-Id"));
         assert!(json_str.contains("X-Kakao-User-Id"));
+    }
+
+    #[test]
+    fn test_query_params_documented_as_query() {
+        let doc: serde_json::Value = serde_json::to_value(ApiDoc::openapi()).unwrap();
+        let params = |path: &str| doc["paths"][path]["get"]["parameters"].as_array().unwrap().clone();
+        let find = |ps: &[serde_json::Value], name: &str| {
+            ps.iter().find(|p| p["name"] == name).cloned().unwrap()
+        };
+
+        let nearby = params("/v1/stores/nearby");
+        for p in &nearby {
+            assert_eq!(p["in"], "query", "{}", p["name"]);
+        }
+        assert_eq!(find(&nearby, "lat")["required"], true);
+        assert_eq!(find(&nearby, "lng")["required"], true);
+        for optional in ["heading", "destLat", "destLng", "limit"] {
+            assert_ne!(find(&nearby, optional)["required"], true, "{}", optional);
+        }
+
+        let stats = params("/v1/owner/stores/{id}/stats");
+        assert_eq!(find(&stats, "id")["in"], "path");
+        assert_eq!(find(&stats, "days")["in"], "query");
+
+        assert!(doc["servers"][0]["url"].as_str().unwrap().contains("workers.dev"));
     }
 }

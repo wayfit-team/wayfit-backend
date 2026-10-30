@@ -68,6 +68,7 @@ pub struct UpdateOwnerStoreRequest {
 
 #[derive(Debug, Clone, Deserialize, IntoParams, ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
 pub struct StoreStatsQuery {
     /// 조회 기간 (7 또는 30일, 기본값 7)
     #[param(example = 7)]
