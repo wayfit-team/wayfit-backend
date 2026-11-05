@@ -3,7 +3,7 @@ main = "build/worker/shim.mjs"
 compatibility_date = "2026-10-29"
 
 [build]
-command = "cargo install -q worker-build && worker-build --release"
+command = "bash ./scripts/build-worker.sh"
 
 [[d1_databases]]
 binding = "wayfit_db"

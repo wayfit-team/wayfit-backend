@@ -1,0 +1,66 @@
+name: Deploy to Cloudflare Workers
+
+# master 브랜치에 푸시(병합)되거나 수동 실행할 때 D1 마이그레이션 및 Cloudflare Workers 배포를 수행한다.
+# 필요한 저장소 Secret:
+#   - CLOUDFLARE_API_TOKEN (권한: Workers Scripts Edit, D1 Edit)
+#   - CLOUDFLARE_ACCOUNT_ID (선택: 계정이 여러 개인 경우 설정)
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cloudflare-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build, Migrate D1 & Deploy Worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Rust toolchain (wasm32-unknown-unknown)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo & wasm-bindgen
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.cache/wasm-bindgen-0.2.129/
+            target/
+          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock', 'scripts/build-worker.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-wasm-
+
+      - name: Run unit tests
+        run: cargo test --lib --locked
+
+      - name: Apply Cloudflare D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 d1 migrations apply wayfit-db --remote
+
+      - name: Build & Deploy Cloudflare Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          chmod +x ./scripts/build-worker.sh
+          npx --yes wrangler@4 deploy
