@@ -32,7 +32,5 @@ enabled = true
 
 [vars]
 KAKAO_REST_API_KEY = "9ab09a604f5cd454900647e5921b830f"
-# wayfit.pages.dev 는 우리 앱이 아니라 제3자 사이트다. 운영 PWA 도메인이 정해지면 채운다.
-# 비어 있으면 카카오 로그인(KAKAO_REDIRECT_URIS)과 차량 QR 발급(PWA_BASE_URL)이 거절된다.
-KAKAO_REDIRECT_URIS = ""
-PWA_BASE_URL = ""
+KAKAO_REDIRECT_URIS = "https://wayfit-pwa.pages.dev/auth/kakao/callback,http://localhost:5173/auth/kakao/callback"
+PWA_BASE_URL = "https://wayfit-pwa.pages.dev"

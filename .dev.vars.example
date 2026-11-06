@@ -1,5 +1,4 @@
 # 로컬 개발용 (wrangler dev). 이 파일을 .dev.vars 로 복사해 값을 채운다. .dev.vars 는 커밋하지 않는다
-KAKAO_REST_API_KEY=
 KAKAO_CLIENT_SECRET=
 KAKAO_REDIRECT_URIS=http://localhost:5173/auth/kakao/callback
 PWA_BASE_URL=http://localhost:5173
