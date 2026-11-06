@@ -18,10 +18,10 @@ use crate::time::now_utc;
     get,
     path = "/v1/me/devices",
     tag = "Driver Wallet (PWA)",
-    security(("kakao_user_id" = [])),
+    security(("session_token" = [])),
     responses(
         (status = 200, description = "연결된 차량 기기 목록", body = MyDevicesResponse),
-        (status = 401, description = "X-Kakao-User-Id 헤더 누락", body = crate::error::ErrorResponse)
+        (status = 401, description = "로그인 필요 또는 세션 만료 (UNAUTHORIZED)", body = crate::error::ErrorResponse)
     )
 )]
 #[worker::send]
@@ -58,7 +58,7 @@ pub async fn get_my_devices(
     path = "/v1/me/devices/{id}",
     tag = "Driver Wallet (PWA)",
     params(("id" = String, Path, description = "연결 해제할 차량 device_id")),
-    security(("kakao_user_id" = [])),
+    security(("session_token" = [])),
     responses(
         (status = 204, description = "연결 해제 완료"),
         (status = 404, description = "연결되어 있지 않은 차량 기기", body = crate::error::ErrorResponse)
@@ -93,10 +93,10 @@ pub async fn unlink_my_device(
     get,
     path = "/v1/me/coupons",
     tag = "Driver Wallet (PWA)",
-    security(("kakao_user_id" = [])),
+    security(("session_token" = [])),
     responses(
         (status = 200, description = "연결된 모든 차량의 쿠폰 목록 (최신 발급순)", body = CouponListResponse),
-        (status = 401, description = "X-Kakao-User-Id 헤더 누락", body = crate::error::ErrorResponse)
+        (status = 401, description = "로그인 필요 또는 세션 만료 (UNAUTHORIZED)", body = crate::error::ErrorResponse)
     )
 )]
 #[worker::send]

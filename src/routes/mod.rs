@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod coupons;
 pub mod impressions;
 pub mod me;

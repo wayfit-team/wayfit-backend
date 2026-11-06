@@ -24,7 +24,7 @@ use crate::time::{format_rfc3339, now_utc, parse_rfc3339, to_kst_date_str};
     path = "/v1/visits",
     tag = "Vehicle (Pleos App)",
     request_body = CreateVisitRequest,
-    security(("device_id" = [])),
+    security(("device_token" = [])),
     responses(
         (status = 201, description = "생성된 방문 정보 (이전 진행 중 방문은 자동 취소됨)", body = CreateVisitResponse),
         (status = 404, description = "존재하지 않는 매장", body = crate::error::ErrorResponse)
@@ -105,7 +105,7 @@ pub async fn create_visit(
     path = "/v1/visits/{id}",
     tag = "Vehicle (Pleos App)",
     params(("id" = String, Path, description = "취소할 방문 ID")),
-    security(("device_id" = [])),
+    security(("device_token" = [])),
     responses(
         (status = 200, description = "취소된 방문 정보", body = CreateVisitResponse),
         (status = 404, description = "존재하지 않거나 다른 기기의 방문", body = crate::error::ErrorResponse),
@@ -166,7 +166,7 @@ pub async fn cancel_visit(
     tag = "Vehicle (Pleos App)",
     params(("id" = String, Path, description = "인증할 방문 ID")),
     request_body = VerifyVisitRequest,
-    security(("device_id" = [])),
+    security(("device_token" = [])),
     responses(
         (status = 200, description = "방문 인증 성공 및 발급된 쿠폰 반환 (멱등)", body = VerifyVisitResponse),
         (status = 404, description = "존재하지 않거나 다른 기기의 방문 (EDGE-B10)", body = crate::error::ErrorResponse),

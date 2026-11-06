@@ -22,11 +22,11 @@ use crate::time::{now_utc, to_kst_date_str};
     path = "/v1/stores/nearby",
     tag = "Vehicle (Pleos App)",
     params(NearbyStoresQuery),
-    security(("device_id" = [])),
+    security(("device_token" = [])),
     responses(
         (status = 200, description = "앞으로 지나갈 경로상 추천 매장 목록 (우회 거리순)", body = NearbyStoresResponse),
         (status = 400, description = "잘못된 좌표/파라미터", body = crate::error::ErrorResponse),
-        (status = 401, description = "X-Device-Id 헤더 누락", body = crate::error::ErrorResponse)
+        (status = 401, description = "기기 토큰 누락 또는 무효 (UNAUTHORIZED)", body = crate::error::ErrorResponse)
     )
 )]
 #[worker::send]

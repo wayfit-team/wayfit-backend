@@ -19,7 +19,7 @@ use axum::{
 use serde::Serialize;
 use tower_service::Service;
 use utoipa::{
-    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
     Modify, OpenApi, ToSchema,
 };
 use worker::{event, Context, Env, HttpRequest, Result as WorkerResult};
@@ -60,18 +60,26 @@ impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         if let Some(components) = openapi.components.as_mut() {
             components.add_security_scheme(
-                "device_id",
-                SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::with_description(
-                    "X-Device-Id",
-                    "Pleos 차량용 앱에서 생성한 기기 UUID (예: demo-car-01)",
-                ))),
+                "device_token",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .description(Some(
+                            "POST /v1/devices로 발급한 차량 기기 토큰 (wfd_...)",
+                        ))
+                        .build(),
+                ),
             );
             components.add_security_scheme(
-                "kakao_user_id",
-                SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::with_description(
-                    "X-Kakao-User-Id",
-                    "카카오 OAuth 로그인 회원번호 (예: kakao_user_1001, 사장님 데모: kakao_owner_01)",
-                ))),
+                "session_token",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .description(Some(
+                            "POST /v1/auth/kakao로 발급한 카카오 로그인 세션 토큰 (wfs_...)",
+                        ))
+                        .build(),
+                ),
             );
         }
     }
@@ -91,6 +99,9 @@ impl Modify for SecurityAddon {
     modifiers(&SecurityAddon),
     paths(
         health_check,
+        crate::routes::auth::kakao_login,
+        crate::routes::auth::logout,
+        crate::routes::auth::register_device,
         crate::routes::stores::get_nearby_stores,
         crate::routes::impressions::create_impression,
         crate::routes::visits::create_visit,
@@ -117,6 +128,9 @@ impl Modify for SecurityAddon {
             crate::domain::hours::DayHours,
             crate::domain::verify::EvidenceType,
             crate::domain::verify::EvidenceSource,
+            crate::schemas::auth::KakaoLoginRequest,
+            crate::schemas::auth::SessionResponse,
+            crate::schemas::auth::RegisterDeviceResponse,
             crate::schemas::stores::StoreCategory,
             crate::schemas::stores::NearbyStoresQuery,
             crate::schemas::stores::NearbyStoreItem,
@@ -153,9 +167,10 @@ impl Modify for SecurityAddon {
     ),
     tags(
         (name = "System", description = "헬스체크 및 시스템 상태"),
-        (name = "Vehicle (Pleos App)", description = "Pleos 차량용 앱 API (X-Device-Id 헤더 사용)"),
-        (name = "Driver Wallet (PWA)", description = "운전자 모바일 쿠폰 지갑 API (카카오 OAuth X-Kakao-User-Id 헤더 사용)"),
-        (name = "Store Owner (PWA /owner)", description = "소상공인 사장님 웹 API (카카오 OAuth X-Kakao-User-Id 헤더 사용)")
+        (name = "Auth", description = "카카오 로그인 세션 발급·폐기"),
+        (name = "Vehicle (Pleos App)", description = "Pleos 차량용 앱 API (Authorization: Bearer 기기 토큰)"),
+        (name = "Driver Wallet (PWA)", description = "운전자 모바일 쿠폰 지갑 API (Authorization: Bearer 카카오 로그인 세션 토큰)"),
+        (name = "Store Owner (PWA /owner)", description = "소상공인 사장님 웹 API (Authorization: Bearer 카카오 로그인 세션 토큰)")
     )
 )]
 pub struct ApiDoc;
@@ -203,7 +218,7 @@ fn add_cors_headers(headers: &mut header::HeaderMap) {
     );
     headers.insert(
         header::ACCESS_CONTROL_ALLOW_HEADERS,
-        HeaderValue::from_static("Content-Type, Authorization, X-Device-Id, X-Kakao-User-Id"),
+        HeaderValue::from_static("Content-Type, Authorization"),
     );
 }
 
@@ -213,7 +228,11 @@ pub fn build_router(state: AppState) -> Router {
         .route("/v1/health", get(health_check))
         .route("/v1/openapi.json", get(openapi_json))
         .route("/v1/docs", get(scalar_docs))
+        // Auth
+        .route("/v1/auth/kakao", post(routes::auth::kakao_login))
+        .route("/v1/auth/logout", post(routes::auth::logout))
         // Vehicle (Pleos App) routes
+        .route("/v1/devices", post(routes::auth::register_device))
         .route("/v1/stores/nearby", get(routes::stores::get_nearby_stores))
         .route(
             "/v1/impressions",
@@ -279,8 +298,8 @@ mod tests {
         assert!(json_str.contains("/v1/visits/{id}/verify"));
         assert!(json_str.contains("/v1/coupons/{id}/redeem"));
         assert!(json_str.contains("/v1/owner/stores/{id}/stats"));
-        assert!(json_str.contains("X-Device-Id"));
-        assert!(json_str.contains("X-Kakao-User-Id"));
+        assert!(json_str.contains("/v1/auth/kakao"));
+        assert!(json_str.contains("session_token") && json_str.contains("device_token"));
     }
 
     #[test]

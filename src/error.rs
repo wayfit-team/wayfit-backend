@@ -13,6 +13,7 @@ use utoipa::ToSchema;
 pub enum ErrorCode {
     ValidationFailed,
     Unauthorized,
+    KakaoAuthFailed,
     Forbidden,
     StoreInactive,
     NotFound,
@@ -34,7 +35,7 @@ impl ErrorCode {
     pub fn status_code(&self) -> StatusCode {
         match self {
             ErrorCode::ValidationFailed => StatusCode::BAD_REQUEST,
-            ErrorCode::Unauthorized => StatusCode::UNAUTHORIZED,
+            ErrorCode::Unauthorized | ErrorCode::KakaoAuthFailed => StatusCode::UNAUTHORIZED,
             ErrorCode::Forbidden | ErrorCode::StoreInactive => StatusCode::FORBIDDEN,
             ErrorCode::NotFound => StatusCode::NOT_FOUND,
             ErrorCode::VisitAlreadyResolved
