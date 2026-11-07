@@ -1,18 +1,18 @@
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::StatusCode,
     Json,
 };
 use chrono::Duration;
 use worker::wasm_bindgen::JsValue;
 
-use crate::db::{CountRow, PairingCodeRow, UserDeviceRow};
+use crate::db::{CountRow, LinkedPhoneRow, PairingCodeRow, UserDeviceRow};
 use crate::error::{AppError, ErrorCode};
 use crate::extractors::{AppJson, DeviceId, KakaoUserId};
 use crate::ids::generate_pairing_code8;
 use crate::schemas::pairing::{
-    ClaimPairingRequest, ClaimPairingResponse, CreatePairingCodeResponse,
-    DevicePairingStatusResponse,
+    ClaimPairingRequest, ClaimPairingResponse, CreatePairingCodeResponse, DevicePairingStatusResponse,
+    DevicePhonesResponse, LinkedPhoneItem,
 };
 use crate::state::AppState;
 use crate::time::{format_rfc3339, now_utc, parse_rfc3339};
@@ -101,6 +101,117 @@ pub async fn get_device_pairing_status(
         device_id,
         linked_user_count: row.map(|r| r.cnt).unwrap_or(0),
     }))
+}
+
+const PHONE_ID_PREFIX: &str = "phn_";
+
+/// 차에 보여줄 폰 ID: 카카오 회원번호 대신 user_devices 의 rowid 를 쓴다
+fn phone_id(link_id: i64) -> String {
+    format!("{PHONE_ID_PREFIX}{link_id}")
+}
+
+fn parse_phone_id(id: &str) -> Option<i64> {
+    id.strip_prefix(PHONE_ID_PREFIX)?.parse().ok()
+}
+
+/// 차량 기기에 연결된 폰 목록 (차량 앱 설정 화면, REQ-B17)
+#[utoipa::path(
+    get,
+    path = "/v1/devices/me/phones",
+    tag = "Vehicle (Pleos App)",
+    security(("device_token" = [])),
+    responses(
+        (status = 200, description = "연결된 폰 목록 (연결된 순서)", body = DevicePhonesResponse),
+        (status = 401, description = "기기 토큰 누락 또는 무효 (UNAUTHORIZED)", body = crate::error::ErrorResponse)
+    )
+)]
+#[worker::send]
+pub async fn get_device_phones(
+    State(state): State<AppState>,
+    DeviceId(device_id): DeviceId,
+) -> Result<Json<DevicePhonesResponse>, AppError> {
+    let db = state.db()?;
+    let rows: Vec<LinkedPhoneRow> = db
+        .prepare(
+            "SELECT rowid AS link_id, linked_at FROM user_devices
+             WHERE device_id = ?1
+             ORDER BY linked_at ASC",
+        )
+        .bind(&[JsValue::from_str(&device_id)])?
+        .all()
+        .await?
+        .results::<LinkedPhoneRow>()?;
+
+    let phones = rows
+        .into_iter()
+        .map(|r| LinkedPhoneItem {
+            phone_id: phone_id(r.link_id),
+            linked_at: r.linked_at,
+        })
+        .collect();
+
+    Ok(Json(DevicePhonesResponse { phones }))
+}
+
+/// 차량에서 폰 한 대 연결 해제 — 그 폰에서 이 차의 쿠폰이 더 보이지 않는다 (쿠폰은 차에 남음)
+#[utoipa::path(
+    delete,
+    path = "/v1/devices/me/phones/{id}",
+    tag = "Vehicle (Pleos App)",
+    params(("id" = String, Path, description = "GET /v1/devices/me/phones 의 phoneId")),
+    security(("device_token" = [])),
+    responses(
+        (status = 204, description = "연결 해제 완료"),
+        (status = 401, description = "기기 토큰 누락 또는 무효 (UNAUTHORIZED)", body = crate::error::ErrorResponse),
+        (status = 404, description = "이 차량에 연결되어 있지 않은 폰", body = crate::error::ErrorResponse)
+    )
+)]
+#[worker::send]
+pub async fn unlink_device_phone(
+    State(state): State<AppState>,
+    DeviceId(device_id): DeviceId,
+    Path(id): Path<String>,
+) -> Result<StatusCode, AppError> {
+    let not_found = || AppError::not_found("이 차량에 연결된 폰을 찾을 수 없습니다");
+    let link_id = parse_phone_id(&id).ok_or_else(not_found)?;
+
+    let db = state.db()?;
+    // device_id 조건으로 다른 차량의 연결은 지우지 못한다
+    let res = db
+        .prepare("DELETE FROM user_devices WHERE rowid = ?1 AND device_id = ?2")
+        .bind(&[JsValue::from_f64(link_id as f64), JsValue::from_str(&device_id)])?
+        .run()
+        .await?;
+
+    let changes = res.meta()?.and_then(|m| m.changes).unwrap_or(0);
+    if changes == 0 {
+        return Err(not_found());
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// 차량에서 연결된 폰 모두 해제 (연결된 폰이 없어도 204)
+#[utoipa::path(
+    delete,
+    path = "/v1/devices/me/phones",
+    tag = "Vehicle (Pleos App)",
+    security(("device_token" = [])),
+    responses(
+        (status = 204, description = "모두 연결 해제"),
+        (status = 401, description = "기기 토큰 누락 또는 무효 (UNAUTHORIZED)", body = crate::error::ErrorResponse)
+    )
+)]
+#[worker::send]
+pub async fn unlink_all_device_phones(
+    State(state): State<AppState>,
+    DeviceId(device_id): DeviceId,
+) -> Result<StatusCode, AppError> {
+    let db = state.db()?;
+    db.prepare("DELETE FROM user_devices WHERE device_id = ?1")
+        .bind(&[JsValue::from_str(&device_id)])?
+        .run()
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// PWA에서 8자리 숫자 페어링 코드 제출 → 카카오 계정에 차량 기기 연결 (REQ-B16, EDGE-B5)
@@ -215,4 +326,22 @@ pub async fn claim_pairing_code(
         device_id: row.device_id,
         linked_at: now_str,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn phone_id_round_trip() {
+        assert_eq!(phone_id(12), "phn_12");
+        assert_eq!(parse_phone_id("phn_12"), Some(12));
+    }
+
+    #[test]
+    fn phone_id_rejects_other_formats() {
+        for bad in ["12", "phn_", "phn_abc", "dev_12", "kakao_user_1001", "phn_1; DROP TABLE"] {
+            assert_eq!(parse_phone_id(bad), None, "{bad}");
+        }
+    }
 }

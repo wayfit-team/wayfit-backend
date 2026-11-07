@@ -89,7 +89,7 @@ wayfit-backend/
         ├── impressions.rs      # POST /v1/impressions
         ├── visits.rs           # POST /v1/visits, DELETE /v1/visits/{id}, POST /v1/visits/{id}/verify
         ├── coupons.rs          # GET /v1/devices/me/coupons, POST /v1/coupons/{id}/redeem
-        ├── pairing.rs          # POST /v1/pairing-codes, GET /v1/devices/me/pairing, POST /v1/pairing/claim
+        ├── pairing.rs          # POST /v1/pairing-codes, GET /v1/devices/me/pairing·phones, DELETE /v1/devices/me/phones, POST /v1/pairing/claim
         ├── me.rs               # GET /v1/me/devices, DELETE /v1/me/devices/{id}, GET /v1/me/coupons
         └── owner.rs            # GET·PATCH /v1/owner/stores, GET /v1/owner/stores/{id}/stats
 ```
@@ -114,6 +114,9 @@ wayfit-backend/
 | **차량 앱** | `GET /v1/devices/me/coupons` | 기기 토큰 | 차량 기기에 귀속된 쿠폰 목록 조회 (`REQ-B12`) |
 | **차량 앱** | `POST /v1/pairing-codes` | 기기 토큰 | 8자리 숫자 QR 페어링 코드 발급 (10분 유효, `REQ-B15`) |
 | **차량 앱** | `GET /v1/devices/me/pairing` | 기기 토큰 | 현재 차량에 연결된 카카오 계정(폰) 수 조회 (`REQ-B17`) |
+| **차량 앱** | `GET /v1/devices/me/phones` | 기기 토큰 | 차량에 연결된 폰 목록 (`phoneId`·연결 시각, 카카오 회원번호는 주지 않음) |
+| **차량 앱** | `DELETE /v1/devices/me/phones/{id}` | 기기 토큰 | 차량에서 폰 한 대 연결 해제 |
+| **차량 앱** | `DELETE /v1/devices/me/phones` | 기기 토큰 | 차량에서 연결된 폰 모두 해제 |
 | **운전자 PWA** | `POST /v1/pairing/claim` | 세션 토큰 | 8자리 숫자 코드 제출 → 내 카카오 계정에 차량 기기 연결 (`REQ-B16`) |
 | **운전자 PWA** | `GET /v1/me/devices` | 세션 토큰 | 내 계정에 연결된 차량 기기 목록 조회 (`REQ-B18`) |
 | **운전자 PWA** | `DELETE /v1/me/devices/{id}` | 세션 토큰 | 특정 차량 기기 연결 해제 (`REQ-B18`) |

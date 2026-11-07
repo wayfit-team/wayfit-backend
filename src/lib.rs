@@ -111,6 +111,9 @@ impl Modify for SecurityAddon {
         crate::routes::coupons::redeem_coupon,
         crate::routes::pairing::create_pairing_code,
         crate::routes::pairing::get_device_pairing_status,
+        crate::routes::pairing::get_device_phones,
+        crate::routes::pairing::unlink_device_phone,
+        crate::routes::pairing::unlink_all_device_phones,
         crate::routes::pairing::claim_pairing_code,
         crate::routes::me::get_my_devices,
         crate::routes::me::unlink_my_device,
@@ -155,6 +158,8 @@ impl Modify for SecurityAddon {
             crate::schemas::pairing::ClaimPairingResponse,
             crate::schemas::pairing::LinkedDeviceItem,
             crate::schemas::pairing::MyDevicesResponse,
+            crate::schemas::pairing::LinkedPhoneItem,
+            crate::schemas::pairing::DevicePhonesResponse,
             crate::schemas::owner::OwnerStoreDto,
             crate::schemas::owner::OwnerStoresResponse,
             crate::schemas::owner::OwnerStoreResponse,
@@ -253,6 +258,14 @@ pub fn build_router(state: AppState) -> Router {
             "/v1/devices/me/pairing",
             get(routes::pairing::get_device_pairing_status),
         )
+        .route(
+            "/v1/devices/me/phones",
+            get(routes::pairing::get_device_phones).delete(routes::pairing::unlink_all_device_phones),
+        )
+        .route(
+            "/v1/devices/me/phones/{id}",
+            delete(routes::pairing::unlink_device_phone),
+        )
         // Driver Wallet (PWA) routes
         .route(
             "/v1/pairing/claim",
@@ -299,6 +312,7 @@ mod tests {
         assert!(json_str.contains("/v1/coupons/{id}/redeem"));
         assert!(json_str.contains("/v1/owner/stores/{id}/stats"));
         assert!(json_str.contains("/v1/auth/kakao"));
+        assert!(json_str.contains("/v1/devices/me/phones/{id}"));
         assert!(json_str.contains("session_token") && json_str.contains("device_token"));
     }
 
