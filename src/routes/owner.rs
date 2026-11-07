@@ -2,10 +2,12 @@ use axum::{
     extract::{Path, State},
     Json,
 };
+use serde_json::json;
 use std::collections::HashMap;
 use worker::wasm_bindgen::JsValue;
 
 use crate::db::{DateCountRow, StoreRow};
+use crate::domain::hours::expand_open_hours;
 use crate::error::AppError;
 use crate::extractors::{AppJson, AppQuery, KakaoUserId};
 use crate::schemas::owner::{
@@ -80,7 +82,10 @@ pub async fn update_owner_store(
     if let Some(name) = req.name {
         let trimmed = name.trim();
         if trimmed.is_empty() {
-            return Err(AppError::validation("매장 이름은 비워둘 수 없습니다"));
+            return Err(
+                AppError::validation("매장 이름은 비워둘 수 없습니다")
+                    .with_details(json!({ "field": "name" })),
+            );
         }
         store.name = trimmed.to_string();
     }
@@ -92,21 +97,30 @@ pub async fn update_owner_store(
     if let Some(addr) = req.address {
         let trimmed = addr.trim();
         if trimmed.is_empty() {
-            return Err(AppError::validation("매장 주소는 비워둘 수 없습니다"));
+            return Err(
+                AppError::validation("매장 주소는 비워둘 수 없습니다")
+                    .with_details(json!({ "field": "address" })),
+            );
         }
         store.address = trimmed.to_string();
     }
 
     if let Some(lat) = req.lat {
         if !(-90.0..=90.0).contains(&lat) {
-            return Err(AppError::validation("유효하지 않은 위도(lat)입니다"));
+            return Err(
+                AppError::validation("유효하지 않은 위도(lat)입니다")
+                    .with_details(json!({ "field": "lat" })),
+            );
         }
         store.lat = lat;
     }
 
     if let Some(lng) = req.lng {
         if !(-180.0..=180.0).contains(&lng) {
-            return Err(AppError::validation("유효하지 않은 경도(lng)입니다"));
+            return Err(
+                AppError::validation("유효하지 않은 경도(lng)입니다")
+                    .with_details(json!({ "field": "lng" })),
+            );
         }
         store.lng = lng;
     }
@@ -117,7 +131,8 @@ pub async fn update_owner_store(
         if char_count == 0 || char_count > 40 {
             return Err(AppError::validation(
                 "혜택 문구(benefitText)는 1자 이상 40자 이하여야 합니다",
-            ));
+            )
+            .with_details(json!({ "field": "benefitText" })));
         }
         store.benefit_text = trimmed.to_string();
     }
@@ -126,22 +141,27 @@ pub async fn update_owner_store(
         if !matches!(radius_m, 100 | 150 | 300) {
             return Err(AppError::validation(
                 "인증 반경(radiusM)은 100, 150, 300(m) 중 하나여야 합니다",
-            ));
+            )
+            .with_details(json!({ "field": "radiusM" })));
         }
         store.radius_m = radius_m;
     }
 
     if let Some(open_hours) = req.open_hours {
-        store.open_hours_json = serde_json::to_string(&open_hours)
-            .map_err(|_| AppError::validation("영업시간 JSON 직렬화에 실패했습니다"))?;
+        let expanded = expand_open_hours(open_hours);
+        store.open_hours_json = serde_json::to_string(&expanded).map_err(|_| {
+            AppError::validation("영업시간 JSON 직렬화에 실패했습니다")
+                .with_details(json!({ "field": "openHours" }))
+        })?;
     }
 
     if let Some(pin) = req.pin_code {
         let trimmed = pin.trim();
         if trimmed.len() != 4 || !trimmed.chars().all(|c| c.is_ascii_digit()) {
-            return Err(AppError::validation(
-                "매장 PIN 코드는 숫자 4자리여야 합니다",
-            ));
+            return Err(
+                AppError::validation("매장 PIN 코드는 숫자 4자리여야 합니다")
+                    .with_details(json!({ "field": "pin" })),
+            );
         }
         store.pin_code = trimmed.to_string();
     }
@@ -213,7 +233,8 @@ pub async fn get_owner_store_stats(
     if !matches!(days, 7 | 30) {
         return Err(AppError::validation(
             "조회 기간(days)은 7 또는 30만 지정할 수 있습니다",
-        ));
+        )
+        .with_details(json!({ "field": "days" })));
     }
 
     let db = state.db()?;
@@ -324,6 +345,9 @@ pub async fn get_owner_store_stats(
             visits_accepted: acc,
             visits_verified: ver,
             coupons_redeemed: red,
+            accepts: acc,
+            visits: ver,
+            redemptions: red,
         });
     }
 
@@ -345,10 +369,12 @@ pub async fn get_owner_store_stats(
         redeem_rate: round4(total_red, total_ver),
     };
 
+    let items = daily.clone();
     Ok(Json(StoreStatsResponse {
         store_id,
         days,
         totals,
         daily,
+        items,
     }))
 }

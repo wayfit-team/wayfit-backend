@@ -18,6 +18,20 @@ pub struct DayHours {
 
 pub type OpenHoursMap = HashMap<String, Option<DayHours>>;
 
+pub const WEEKDAYS: [&str; 7] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+/// 시드 데이터의 `{"all": {"open": "00:00", "close": "23:59"}}` 축약 표현을
+/// 사장님 웹(`mon`~`sun` 요일별 키)에서 바로 읽고 수정할 수 있도록 7개 요일 키로 펼친다.
+pub fn expand_open_hours(mut map: OpenHoursMap) -> OpenHoursMap {
+    if let Some(default_hours) = map.remove("all") {
+        for day in WEEKDAYS {
+            map.entry(day.to_string())
+                .or_insert_with(|| default_hours.clone());
+        }
+    }
+    map
+}
+
 fn parse_hhmm(s: &str) -> Option<u32> {
     let mut parts = s.split(':');
     let h: u32 = parts.next()?.parse().ok()?;
@@ -88,5 +102,18 @@ mod tests {
         // 2026-11-08 is Sunday. 03:00 UTC = 12:00 KST (Closed on Sunday)
         let sun_noon_kst = parse_rfc3339("2026-11-08T03:00:00Z").unwrap();
         assert!(!is_store_open(json, sun_noon_kst));
+    }
+
+    #[test]
+    fn test_expand_open_hours_from_all() {
+        let raw: OpenHoursMap =
+            serde_json::from_str(r#"{"all":{"open":"00:00","close":"23:59"}}"#).unwrap();
+        let expanded = expand_open_hours(raw);
+        assert!(!expanded.contains_key("all"));
+        for day in WEEKDAYS {
+            let hours = expanded.get(day).and_then(|h| h.as_ref()).unwrap();
+            assert_eq!(hours.open, "00:00");
+            assert_eq!(hours.close, "23:59");
+        }
     }
 }
