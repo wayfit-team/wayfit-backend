@@ -157,6 +157,13 @@ pub struct UserDeviceRow {
     pub linked_at: String,
 }
 
+/// user_devices 의 rowid(연결 단위 ID)와 연결 시각
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LinkedPhoneRow {
+    pub link_id: i64,
+    pub linked_at: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdRow {
     pub id: String,

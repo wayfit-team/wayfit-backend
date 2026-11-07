@@ -56,3 +56,21 @@ pub struct LinkedDeviceItem {
 pub struct MyDevicesResponse {
     pub devices: Vec<LinkedDeviceItem>,
 }
+
+/// 차량에 연결된 폰 1대. 카카오 회원번호는 차에 보여주지 않으므로 연결 단위 ID 만 준다
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LinkedPhoneItem {
+    /// 연결 해제 때 쓰는 ID (`phn_` + 숫자). 다시 연결하면 바뀐다
+    #[schema(example = "phn_12")]
+    pub phone_id: String,
+    #[schema(example = "2026-11-05T03:11:00Z")]
+    pub linked_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DevicePhonesResponse {
+    /// 연결된 순서대로
+    pub phones: Vec<LinkedPhoneItem>,
+}
