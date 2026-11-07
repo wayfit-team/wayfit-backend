@@ -2,6 +2,7 @@ use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::domain::hours::expand_open_hours;
 use crate::schemas::coupons::{CouponDto, CouponStatus};
 use crate::schemas::owner::OwnerStoreDto;
 use crate::schemas::stores::StoreCategory;
@@ -28,7 +29,9 @@ pub struct StoreRow {
 
 impl StoreRow {
     pub fn into_owner_dto(self) -> OwnerStoreDto {
-        let open_hours = serde_json::from_str(&self.open_hours_json).unwrap_or_else(|_| HashMap::new());
+        let open_hours = expand_open_hours(
+            serde_json::from_str(&self.open_hours_json).unwrap_or_else(|_| HashMap::new()),
+        );
         OwnerStoreDto {
             id: self.id,
             owner_kakao_id: self.owner_kakao_id,

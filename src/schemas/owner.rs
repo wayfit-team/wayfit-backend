@@ -60,7 +60,8 @@ pub struct UpdateOwnerStoreRequest {
     /// 인증 반경 (100, 150, 300 중 하나, REQ-B20)
     pub radius_m: Option<i32>,
     pub open_hours: Option<OpenHoursMap>,
-    /// 매장 4자리 숫자 PIN 코드
+    /// 매장 4자리 숫자 PIN 코드 (`pin` 또는 `pinCode`)
+    #[serde(alias = "pin")]
     pub pin_code: Option<String>,
     /// 노출 일시중지 여부
     pub paused: Option<bool>,
@@ -84,6 +85,12 @@ pub struct DailyStatItem {
     pub visits_accepted: i64,
     pub visits_verified: i64,
     pub coupons_redeemed: i64,
+    /// visitsAccepted 별칭 (사장님 PWA 호환)
+    pub accepts: i64,
+    /// visitsVerified 별칭 (사장님 PWA 호환)
+    pub visits: i64,
+    /// couponsRedeemed 별칭 (사장님 PWA 호환)
+    pub redemptions: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -108,4 +115,6 @@ pub struct StoreStatsResponse {
     pub days: u32,
     pub totals: StoreStatsTotals,
     pub daily: Vec<DailyStatItem>,
+    /// daily 별칭 (사장님 PWA unwrapList 호환)
+    pub items: Vec<DailyStatItem>,
 }
