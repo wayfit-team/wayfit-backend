@@ -1,5 +1,7 @@
 # WayFit Backend (`wayfit-backend`)
 
+![웨이핏](docs/images/preview.png)
+
 > **"가는 길에, 웨이핏"** — 경로 위 동네 가게를 추천하고, 들르면 차량 데이터로 방문을 인증해 모바일 쿠폰을 발급하는 소상공인 상생 광고 플랫폼 백엔드  
 > **스택**: Cloudflare Workers + Rust (`workers-rs` + `axum` + `utoipa`) + Cloudflare D1 (SQLite)
 
